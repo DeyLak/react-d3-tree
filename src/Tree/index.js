@@ -10,7 +10,10 @@ import Node from '../Node';
 import Link from '../Link';
 import './style.css';
 
-import { ORIENTATIONS } from '../constants';
+import {
+  ORIENTATIONS,
+  D3_TREE_TYPES,
+} from '../constants';
 
 export default class Tree extends React.Component {
   constructor(props) {
@@ -374,7 +377,14 @@ export default class Tree extends React.Component {
    * @return {object} Object containing `nodes` and `links`.
    */
   generateTree() {
-    const { initialDepth, depthFactor, separation, nodeSize, orientation } = this.props;
+    const {
+      initialDepth,
+      depthFactor,
+      separation,
+      nodeSize,
+      orientation,
+      treeType,
+    } = this.props;
 
     // Flip tree coordinates to rotate it by 90 degrees
     let nodeSizeParam;
@@ -387,8 +397,9 @@ export default class Tree extends React.Component {
       nodeSizeParam = [nodeSize.x, nodeSize.y];
     }
 
-    const tree = layout
-      .tree()
+    const d3Function = treeType === D3_TREE_TYPES.tree ? 'tree' : 'cluster'
+
+    const tree = layout[d3Function]()
       .nodeSize(nodeSizeParam)
       .separation(
         (a, b) => (a.parent.id === b.parent.id ? separation.siblings : separation.nonSiblings),
@@ -526,6 +537,7 @@ Tree.defaultProps = {
   onMouseOver: undefined,
   onMouseOut: undefined,
   onUpdate: undefined,
+  treeType: D3_TREE_TYPES.tree,
   orientation: ORIENTATIONS.horizontal,
   translate: { x: 0, y: 0 },
   pathFunc: 'diagonal',
@@ -561,6 +573,7 @@ Tree.propTypes = {
   onMouseOver: PropTypes.func,
   onMouseOut: PropTypes.func,
   onUpdate: PropTypes.func,
+  treeType: PropTypes.oneOf(Object.values(D3_TREE_TYPES)),
   orientation: PropTypes.oneOf(Object.values(ORIENTATIONS)),
   translate: PropTypes.shape({
     x: PropTypes.number,

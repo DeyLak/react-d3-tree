@@ -38,3 +38,11 @@ export const getOrientedCoordinates = (x, y, orientation, containerSize) => {
   }
   return [resultX, resultY];
 };
+
+export const D3_TREE_TYPE_TREE = 'tree'
+export const D3_TREE_TYPE_CLUSTER = 'cluster'
+
+export const D3_TREE_TYPES = {
+  [D3_TREE_TYPE_TREE]: D3_TREE_TYPE_TREE,
+  [D3_TREE_TYPE_CLUSTER]: D3_TREE_TYPE_CLUSTER,
+}
