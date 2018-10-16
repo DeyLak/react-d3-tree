@@ -10,6 +10,8 @@ import Node from '../Node';
 import Link from '../Link';
 import './style.css';
 
+import { ORIENTATIONS } from '../constants';
+
 export default class Tree extends React.Component {
   constructor(props) {
     super(props);
@@ -17,6 +19,7 @@ export default class Tree extends React.Component {
       data: this.assignInternalProperties(clone(props.data)),
       rd3tSvgClassName: `_${uuid.v4()}`,
       rd3tGClassName: `_${uuid.v4()}`,
+      svgContainerSize: undefined,
     };
     this.internalState = {
       initialRender: true,
@@ -27,6 +30,7 @@ export default class Tree extends React.Component {
         translate: this.props.translate,
       },
     };
+    this.setSvgContainerSize = this.setSvgContainerSize.bind(this);
     this.findNodesById = this.findNodesById.bind(this);
     this.collapseNode = this.collapseNode.bind(this);
     this.handleNodeToggle = this.handleNodeToggle.bind(this);
@@ -45,6 +49,18 @@ export default class Tree extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
+    const {
+      orientation,
+    } = this.props
+    // WE should not update first time rendering, cause it's just for size calculations
+    if (!this.state.svgContainerSize && (
+      orientation === ORIENTATIONS.horizontalMirrored ||
+      orientation === ORIENTATIONS.verticalMirrorred
+      )
+    ) {
+      return
+    }
+
     // Rebind zoom listeners to new DOM nodes in case NodeWrapper switched <TransitionGroup> <-> <g>
     if (prevProps.transitionDuration !== this.props.transitionDuration) {
       this.bindZoomListener(this.props);
@@ -78,6 +94,24 @@ export default class Tree extends React.Component {
       this.props.zoom !== nextProps.zoom
     ) {
       this.bindZoomListener(nextProps);
+    }
+  }
+
+  /**
+   * setSvgContainerSize - Sets svg container rendered size.
+   * Used for calculating resulting tree width and mirroring it for mirror orientations
+   *
+   * @param {object} getBoundingClientRect resul, called on rendered g node
+   *
+   * @return {void}
+   */
+  setSvgContainerSize(svgContainerSize) {
+    const {
+      orientation,
+    } = this.props;
+    // We should not update for normal orientations
+    if (orientation === ORIENTATIONS.horizontalMirrored || orientation === ORIENTATIONS.verticalMirrorred) {
+      this.setState({ svgContainerSize });
     }
   }
 
@@ -342,9 +376,20 @@ export default class Tree extends React.Component {
   generateTree() {
     const { initialDepth, depthFactor, separation, nodeSize, orientation } = this.props;
 
+    // Flip tree coordinates to rotate it by 90 degrees
+    let nodeSizeParam;
+    if (
+      orientation === ORIENTATIONS.horizontal ||
+      orientation === ORIENTATIONS.horizontalMirrored
+    ) {
+      nodeSizeParam = [nodeSize.y, nodeSize.x];
+    } else {
+      nodeSizeParam = [nodeSize.x, nodeSize.y];
+    }
+
     const tree = layout
       .tree()
-      .nodeSize(orientation === 'horizontal' ? [nodeSize.y, nodeSize.x] : [nodeSize.x, nodeSize.y])
+      .nodeSize(nodeSizeParam)
       .separation(
         (a, b) => (a.parent.id === b.parent.id ? separation.siblings : separation.nonSiblings),
       )
@@ -397,7 +442,7 @@ export default class Tree extends React.Component {
 
   render() {
     const { nodes, links } = this.generateTree();
-    const { rd3tSvgClassName, rd3tGClassName } = this.state;
+    const { rd3tSvgClassName, rd3tGClassName, svgContainerSize } = this.state;
     const {
       nodeSvgShape,
       nodeLabelComponent,
@@ -426,11 +471,13 @@ export default class Tree extends React.Component {
             component="g"
             className={rd3tGClassName}
             transform={`translate(${translate.x},${translate.y}) scale(${scale})`}
+            onRender={this.setSvgContainerSize}
           >
             {links.map(linkData => (
               <Link
                 key={uuid.v4()}
                 orientation={orientation}
+                containerSize={svgContainerSize}
                 pathFunc={pathFunc}
                 linkData={linkData}
                 transitionDuration={transitionDuration}
@@ -445,6 +492,7 @@ export default class Tree extends React.Component {
                 nodeLabelComponent={nodeLabelComponent}
                 nodeSize={nodeSize}
                 orientation={orientation}
+                containerSize={svgContainerSize}
                 transitionDuration={transitionDuration}
                 nodeData={nodeData}
                 name={nodeData.name}
@@ -478,7 +526,7 @@ Tree.defaultProps = {
   onMouseOver: undefined,
   onMouseOut: undefined,
   onUpdate: undefined,
-  orientation: 'horizontal',
+  orientation: ORIENTATIONS.horizontal,
   translate: { x: 0, y: 0 },
   pathFunc: 'diagonal',
   transitionDuration: 500,
@@ -513,7 +561,7 @@ Tree.propTypes = {
   onMouseOver: PropTypes.func,
   onMouseOut: PropTypes.func,
   onUpdate: PropTypes.func,
-  orientation: PropTypes.oneOf(['horizontal', 'vertical']),
+  orientation: PropTypes.oneOf(Object.values(ORIENTATIONS)),
   translate: PropTypes.shape({
     x: PropTypes.number,
     y: PropTypes.number,

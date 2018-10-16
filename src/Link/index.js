@@ -4,6 +4,8 @@ import { svg, select } from 'd3';
 
 import './style.css';
 
+import { ORIENTATIONS, getOrientedCoordinates } from '../constants';
+
 export default class Link extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -35,57 +37,71 @@ export default class Link extends React.PureComponent {
     }
   }
 
-  diagonalPath(linkData, orientation) {
+  diagonalPath(linkData, orientation, containerSize) {
+
     const diagonal = svg
       .diagonal()
-      .projection(d => (orientation === 'horizontal' ? [d.y, d.x] : [d.x, d.y]));
+      .projection(d => getOrientedCoordinates(d.x, d.y, orientation, containerSize));
     return diagonal(linkData);
   }
 
-  straightPath(linkData, orientation) {
+  straightPath(linkData, orientation, containerSize) {
     const straight = svg
       .line()
       .interpolate('basis')
       .x(d => d.x)
       .y(d => d.y);
 
-    let data = [
-      { x: linkData.source.x, y: linkData.source.y },
-      { x: linkData.target.x, y: linkData.target.y },
-    ];
+    const [sourceX, sourceY] = getOrientedCoordinates(
+      linkData.source.x,
+      linkData.source.y,
+      orientation,
+      containerSize,
+    );
+    const [targetX, targetY] = getOrientedCoordinates(
+      linkData.target.x,
+      linkData.target.y,
+      orientation,
+      containerSize,
+    );
 
-    if (orientation === 'horizontal') {
-      data = [
-        { x: linkData.source.y, y: linkData.source.x },
-        { x: linkData.target.y, y: linkData.target.x },
-      ];
-    }
+    const data = [{ x: sourceX, y: sourceY }, { x: targetX, y: targetY }];
 
     return straight(data);
   }
 
-  elbowPath(d, orientation) {
-    return orientation === 'horizontal'
-      ? `M${d.source.y},${d.source.x}V${d.target.x}H${d.target.y}`
-      : `M${d.source.x},${d.source.y}V${d.target.y}H${d.target.x}`;
+  elbowPath(linkData, orientation, containerSize) {
+    const [sourceX, sourceY] = getOrientedCoordinates(
+      linkData.source.x,
+      linkData.source.y,
+      orientation,
+      containerSize,
+    );
+    const [targetX, targetY] = getOrientedCoordinates(
+      linkData.target.x,
+      linkData.target.y,
+      orientation,
+      containerSize,
+    );
+    return `M${sourceX},${sourceY}V${targetY}H${targetX}`;
   }
 
   drawPath() {
-    const { linkData, orientation, pathFunc } = this.props;
+    const { linkData, orientation, pathFunc, containerSize } = this.props;
 
     if (typeof pathFunc === 'function') {
-      return pathFunc(linkData, orientation);
+      return pathFunc(linkData, orientation, containerSize);
     }
 
     if (pathFunc === 'elbow') {
-      return this.elbowPath(linkData, orientation);
+      return this.elbowPath(linkData, orientation, containerSize);
     }
 
     if (pathFunc === 'straight') {
-      return this.straightPath(linkData, orientation);
+      return this.straightPath(linkData, orientation, containerSize);
     }
 
-    return this.diagonalPath(linkData, orientation);
+    return this.diagonalPath(linkData, orientation, containerSize);
   }
 
   render() {
@@ -105,11 +121,13 @@ export default class Link extends React.PureComponent {
 
 Link.defaultProps = {
   styles: {},
+  containerSize: undefined,
 };
 
 Link.propTypes = {
   linkData: PropTypes.object.isRequired,
-  orientation: PropTypes.oneOf(['horizontal', 'vertical']).isRequired,
+  orientation: PropTypes.oneOf(Object.values(ORIENTATIONS)).isRequired,
+  containerSize: PropTypes.object,
   pathFunc: PropTypes.oneOfType([
     PropTypes.oneOf(['diagonal', 'elbow', 'straight']),
     PropTypes.func,

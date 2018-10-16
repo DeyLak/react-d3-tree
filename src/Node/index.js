@@ -6,15 +6,17 @@ import './style.css';
 import SvgTextElement from './SvgTextElement';
 import ForeignObjectElement from './ForeignObjectElement';
 
+import { ORIENTATIONS, getOrientedCoordinates } from '../constants';
+
 export default class Node extends React.Component {
   constructor(props) {
     super(props);
-    const { nodeData: { parent }, orientation } = props;
+    const { nodeData: { parent }, orientation, containerSize } = props;
     const originX = parent ? parent.x : 0;
     const originY = parent ? parent.y : 0;
 
     this.state = {
-      transform: this.setTransformOrientation(originX, originY, orientation),
+      transform: this.setTransformOrientation(originX, originY, orientation, containerSize),
       initialStyle: {
         opacity: 0,
       },
@@ -26,8 +28,8 @@ export default class Node extends React.Component {
   }
 
   componentDidMount() {
-    const { nodeData: { x, y }, orientation, transitionDuration } = this.props;
-    const transform = this.setTransformOrientation(x, y, orientation);
+    const { nodeData: { x, y }, orientation, containerSize, transitionDuration } = this.props;
+    const transform = this.setTransformOrientation(x, y, orientation, containerSize);
 
     this.applyTransform(transform, transitionDuration);
   }
@@ -37,6 +39,7 @@ export default class Node extends React.Component {
       nextProps.nodeData.x,
       nextProps.nodeData.y,
       nextProps.orientation,
+      nextProps.containerSize,
     );
     this.applyTransform(transform, nextProps.transitionDuration);
   }
@@ -54,8 +57,9 @@ export default class Node extends React.Component {
     );
   }
 
-  setTransformOrientation(x, y, orientation) {
-    return orientation === 'horizontal' ? `translate(${y},${x})` : `translate(${x},${y})`;
+  setTransformOrientation(x, y, orientation, containerSize) {
+    const [resultX, resultY] = getOrientedCoordinates(x, y, orientation, containerSize);
+    return `translate(${resultX},${resultY})`;
   }
 
   applyTransform(transform, transitionDuration, opacity = 1, done = () => {}) {
@@ -142,6 +146,7 @@ Node.defaultProps = {
   nodeLabelComponent: null,
   attributes: undefined,
   circleRadius: undefined,
+  containerSize: undefined,
   styles: {
     node: {
       circle: {},
@@ -161,7 +166,8 @@ Node.propTypes = {
   nodeSvgShape: PropTypes.object.isRequired,
   nodeLabelComponent: PropTypes.object,
   nodeSize: PropTypes.object.isRequired,
-  orientation: PropTypes.oneOf(['horizontal', 'vertical']).isRequired,
+  orientation: PropTypes.oneOf(Object.values(ORIENTATIONS)).isRequired,
+  containerSize: PropTypes.object,
   transitionDuration: PropTypes.number.isRequired,
   onClick: PropTypes.func.isRequired,
   onMouseOver: PropTypes.func.isRequired,
