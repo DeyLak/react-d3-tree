@@ -10,10 +10,7 @@ import Node from '../Node';
 import Link from '../Link';
 import './style.css';
 
-import {
-  ORIENTATIONS,
-  D3_TREE_TYPES,
-} from '../constants';
+import { ORIENTATIONS, D3_TREE_TYPES } from '../constants';
 
 export default class Tree extends React.Component {
   constructor(props) {
@@ -52,16 +49,14 @@ export default class Tree extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    const {
-      orientation,
-    } = this.props
+    const { orientation } = this.props;
     // WE should not update first time rendering, cause it's just for size calculations
-    if (!this.state.svgContainerSize && (
-      orientation === ORIENTATIONS.horizontalMirrored ||
-      orientation === ORIENTATIONS.verticalMirrorred
-      )
+    if (
+      !this.state.svgContainerSize &&
+      (orientation === ORIENTATIONS.horizontalMirrored ||
+        orientation === ORIENTATIONS.verticalMirrorred)
     ) {
-      return
+      return;
     }
 
     // Rebind zoom listeners to new DOM nodes in case NodeWrapper switched <TransitionGroup> <-> <g>
@@ -109,11 +104,12 @@ export default class Tree extends React.Component {
    * @return {void}
    */
   setSvgContainerSize(svgContainerSize) {
-    const {
-      orientation,
-    } = this.props;
+    const { orientation } = this.props;
     // We should not update for normal orientations
-    if (orientation === ORIENTATIONS.horizontalMirrored || orientation === ORIENTATIONS.verticalMirrorred) {
+    if (
+      orientation === ORIENTATIONS.horizontalMirrored ||
+      orientation === ORIENTATIONS.verticalMirrorred
+    ) {
       this.setState({ svgContainerSize });
     }
   }
@@ -380,6 +376,7 @@ export default class Tree extends React.Component {
     const {
       initialDepth,
       depthFactor,
+      nodeTransformFunc,
       separation,
       nodeSize,
       orientation,
@@ -397,7 +394,7 @@ export default class Tree extends React.Component {
       nodeSizeParam = [nodeSize.x, nodeSize.y];
     }
 
-    const d3Function = treeType === D3_TREE_TYPES.tree ? 'tree' : 'cluster'
+    const d3Function = treeType === D3_TREE_TYPES.tree ? 'tree' : 'cluster';
 
     const tree = layout[d3Function]()
       .nodeSize(nodeSizeParam)
@@ -419,6 +416,10 @@ export default class Tree extends React.Component {
       nodes.forEach(node => {
         node.y = node.depth * depthFactor;
       });
+    }
+
+    if (nodeTransformFunc) {
+      nodes.forEach(nodeTransformFunc);
     }
 
     const links = tree.links(nodes);
@@ -486,7 +487,7 @@ export default class Tree extends React.Component {
           >
             {links.map(linkData => (
               <Link
-                key={uuid.v4()}
+                key={`${linkData.source.id}_${linkData.target.id}`}
                 orientation={orientation}
                 containerSize={svgContainerSize}
                 pathFunc={pathFunc}
@@ -532,6 +533,7 @@ Tree.defaultProps = {
       r: 10,
     },
   },
+  nodeTransformFunc: undefined,
   nodeLabelComponent: null,
   onClick: undefined,
   onMouseOver: undefined,
@@ -568,6 +570,7 @@ Tree.propTypes = {
     shape: PropTypes.string,
     shapeProps: PropTypes.object,
   }),
+  nodeTransformFunc: PropTypes.func,
   nodeLabelComponent: PropTypes.object,
   onClick: PropTypes.func,
   onMouseOver: PropTypes.func,
