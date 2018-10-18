@@ -399,7 +399,7 @@ export default class Tree extends React.Component {
     const tree = layout[d3Function]()
       .nodeSize(nodeSizeParam)
       .separation(
-        (a, b) => (a.parent.id === b.parent.id ? separation.siblings : separation.nonSiblings),
+        (a, b) => (a.parent && b.parent && a.parent.id === b.parent.id ? separation.siblings : separation.nonSiblings),
       )
       .children(d => (d._collapsed ? null : d._children));
 
