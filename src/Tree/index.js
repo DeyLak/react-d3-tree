@@ -246,7 +246,7 @@ export default class Tree extends React.Component {
    */
   collapseNode(node) {
     node._collapsed = true;
-    if (node._children && node._children.length > 0) {
+    if (this.props.recursiveCollapse && node._children && node._children.length > 0) {
       node._children.forEach(child => {
         this.collapseNode(child);
       });
@@ -546,6 +546,7 @@ Tree.defaultProps = {
   transitionDuration: 500,
   depthFactor: undefined,
   collapsible: true,
+  recursiveCollapse: true,
   initialDepth: undefined,
   zoomable: true,
   zoom: 1,
@@ -589,6 +590,7 @@ Tree.propTypes = {
   transitionDuration: PropTypes.number,
   depthFactor: PropTypes.number,
   collapsible: PropTypes.bool,
+  recursiveCollapse: PropTypes.bool,
   initialDepth: PropTypes.number,
   zoomable: PropTypes.bool,
   zoom: PropTypes.number,
